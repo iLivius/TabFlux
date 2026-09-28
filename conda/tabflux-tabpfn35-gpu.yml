@@ -1,0 +1,20 @@
+# TabPFN-3.5 environment for TabFlux. Everything but Python comes from
+# pip on purpose: the pip torch wheel bundles its own CUDA/BLAS libraries and
+# needs no MKL from the environment, so it also works when Python is embedded
+# in R (the conda-forge PyTorch build of tabflux-tabpfn-gpu does not, without
+# LD_LIBRARY_PATH). Create with:
+#   conda env create -f conda/tabflux-tabpfn35-gpu.yml
+# Weights (tabpfn-v3.5-20260909.safetensors, ~876 MB) are downloaded by the
+# package on first use after a one-time licence acceptance on your Prior Labs
+# account (see docs/getting-started/installation.md, "TabPFN variables and
+# weights"); the Hugging Face token is not used.
+name: tabflux-tabpfn35-gpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu129
+      - torch==2.9.1
+      - tabpfn==9.0.0

@@ -1,0 +1,42 @@
+/* ── Page width ──────────────────────────────────────────────────────────────
+ * Material's default content column is tuned for prose (~45 rem). Much of this
+ * site is wide tables (configuration keys, output files, results), so the page
+ * is widened to let them fit with less horizontal scrolling.
+ */
+.md-grid {
+  max-width: 1360px;
+}
+
+/* ── Diagrams ────────────────────────────────────────────────────────────────
+ * Nothing here styles the Mermaid diagram. Material draws it inside a closed
+ * shadow DOM, which page CSS cannot reach, and it colours the diagram from the
+ * palette so both light and dark mode stay readable. Label size and wrapping
+ * are set in the diagram itself (the init line at the top of the Mermaid block
+ * in docs/index.md).
+ */
+
+/* Config keys and file names in the first column of a table are identifiers:
+   breaking one across two lines makes it hard to read and to search for. Keep
+   inline code in the first column on one line and let the description column
+   absorb the wrapping instead. */
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}
+
+/* ── Accent colour ───────────────────────────────────────────────────────────
+ * The palette's deep purple carries the navigation and the links, where text
+ * contrast matters. Neon green appears only as the underline a link grows on
+ * hover. Neon on white measures about 1.4:1, far below the 4.5:1 that
+ * readable body text needs, so it is never used for text or for a filled
+ * button.
+ */
+:root {
+  --tabflux-neon: #39ff14;
+}
+
+/* Links keep the palette colour; the neon is the motion on hover. */
+.md-typeset a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--tabflux-neon);
+  text-decoration-thickness: 2px;
+}

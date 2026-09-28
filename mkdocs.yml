@@ -1,0 +1,103 @@
+site_name: TabFlux
+site_description: Machine-learning classification of microbial community profiles — grouped and nested evaluation, TabPFN and random forests, container-first
+site_author: Livio Antonielli
+repo_url: https://github.com/iLivius/TabFlux
+repo_name: iLivius/TabFlux
+edit_uri: edit/main/docs/
+site_url: https://ilivius.github.io/TabFlux/
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  logo: assets/favicon.svg
+  favicon: assets/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant       # click-through without a full page reload
+    - navigation.tracking      # URL follows the section you are reading
+    - navigation.sections      # top-level groups rendered as sidebar sections
+    - navigation.top           # back-to-top button
+    - navigation.indexes       # a section can have its own landing page
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy        # copy button on every code block
+    - content.action.edit      # "edit this page" link back to GitHub
+  palette:
+    # BacFlux is blue and MetaFlux is teal, so TabFlux takes deep purple: the three
+    # sites are told apart at a glance, including in a browser tab strip, while
+    # staying inside Material's accessible palette. The neon lives in extra.css,
+    # on the link-hover underline only, where contrast against text does not apply.
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+# Only the extensions the pages use.
+markdown_extensions:
+  - admonition                 # note/warning/tip callout boxes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight         # syntax colouring in code blocks
+  - pymdownx.superfences:      # nested code blocks, and Mermaid diagrams
+      # Material loads Mermaid from a CDN when the page opens, so no extra
+      # JavaScript needs configuring here; the diagram needs internet access
+      # to render.
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+
+# The nav follows the order someone actually needs things: what the tool is and
+# why it is built this way, how to get it running, what the code does to the data,
+# how a result is scored (the part that decides whether a number means anything),
+# the settings, and the public case study.
+nav:
+  - Home: index.md
+  - Introduction: introduction.md
+  - Rationale: rationale.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Quick start: getting-started/quick-start.md
+      - Your own data: getting-started/your-data.md
+      - Chunk by chunk: getting-started/interactive.md
+  - How it works:
+      - Code structure: workflow/structure.md
+      - From table to features: workflow/data-preparation.md
+      - Learners and tuning: workflow/learners.md
+      - Evaluation design: workflow/evaluation.md
+      - Grouping and fold size: workflow/grouping.md
+      - Explaining a model: workflow/importance.md
+  - Reference:
+      - Configuration: reference/configuration.md
+      - Output files: reference/output.md
+  - Case study — cFMD:
+      - cfmd/index.md
+      - The database: cfmd/database.md
+      - Running it: cfmd/running.md
+      - Results: cfmd/results.md
+      - Comparing learners: cfmd/comparison.md
+  - Troubleshooting: troubleshooting.md
+  - About:
+      - Citation: about/citation.md
+      - Licensing: about/licensing.md

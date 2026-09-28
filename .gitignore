@@ -1,0 +1,43 @@
+# Output directories
+*_saved_learners/
+*_multi_tax_results/
+# Everything a container run writes: cFMD download cache, run folders, HTML reports.
+/out/
+
+# R session artefacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+Rplots.pdf
+
+# Quarto render output (a direct render of the notebook is covered by analysis/.gitignore)
+_site/
+_freeze/
+/.quarto/
+*_files/
+tabflux_*.html
+
+# IDE
+.vscode/
+
+# Environment / secrets
+.Renviron
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Quarto intermediate left behind when a render is interrupted
+*.rmarkdown
+
+# Input data never enter the repository: only the README that describes the layout.
+input/*
+!input/README.md
+
+# Scratch configs for smoke renders (config_smoke_x.yaml, config_cfmd_x_smoke.yaml, ...)
+config_*smoke*.yaml
+
+# MkDocs build output
+site/

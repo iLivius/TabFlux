@@ -1,0 +1,63 @@
+<!--
+  TabFlux logo.
+  A disc holding a feature table seen from above, with an ML (machine learning)
+  badge set into its rim. The top row is the features, the rows below are
+  samples. The bottom row is lit in neon: data held out from training and scored
+  by a model that never saw them, the idea the whole tool is built around.
+  Palette matches the documentation site: deep purple, neon green.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 152" role="img" aria-label="TabFlux">
+  <defs>
+    <linearGradient id="disc" x1="14" y1="14" x2="138" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3a2578"/><stop offset="100%" stop-color="#1d1046"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="620" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b6cff"/><stop offset="100%" stop-color="#39ff14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="70" cy="103" r="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#39ff14" stop-opacity="0.5"/><stop offset="100%" stop-color="#39ff14" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Everything inside the disc is clipped to it, so cells meet the rim cleanly. -->
+    <clipPath id="inDisc"><circle cx="76" cy="76" r="60"/></clipPath>
+  </defs>
+
+  <rect width="620" height="152" rx="18" fill="#150b34"/>
+  <rect x="1" y="1" width="618" height="1" fill="#ffffff" opacity="0.05"/>
+
+  <circle cx="76" cy="76" r="60" fill="url(#disc)"/>
+  <circle cx="76" cy="76" r="59" fill="none" stroke="#8b6cff" stroke-width="2" opacity="0.55"/>
+
+  <g clip-path="url(#inDisc)">
+    <!-- Four rows, centred in the disc (block spans y 42-110, midpoint 76). The
+         bottom row stops short of x 88 so the ML badge sits in a deliberate
+         notch rather than on top of a cell. -->
+    <!-- Header row: the features. -->
+    <rect x="28" y="42" width="34" height="14" rx="3" fill="#efe9ff" opacity="0.92"/>
+    <rect x="66" y="42" width="22" height="14" rx="3" fill="#efe9ff" opacity="0.62"/>
+    <rect x="92" y="42" width="32" height="14" rx="3" fill="#efe9ff" opacity="0.92"/>
+    <!-- Body rows: samples. Widths vary, as abundances do. -->
+    <rect x="28" y="60" width="22" height="14" rx="3" fill="#b9a6ff" opacity="0.85"/>
+    <rect x="54" y="60" width="34" height="14" rx="3" fill="#b9a6ff" opacity="0.45"/>
+    <rect x="92" y="60" width="32" height="14" rx="3" fill="#b9a6ff" opacity="0.70"/>
+    <rect x="28" y="78" width="34" height="14" rx="3" fill="#b9a6ff" opacity="0.55"/>
+    <rect x="66" y="78" width="22" height="14" rx="3" fill="#b9a6ff" opacity="0.85"/>
+    <rect x="92" y="78" width="32" height="14" rx="3" fill="#b9a6ff" opacity="0.40"/>
+    <!-- The held-out row, lit. -->
+    <circle cx="70" cy="103" r="34" fill="url(#glow)"/>
+    <rect x="28" y="96" width="34" height="14" rx="3" fill="#39ff14" opacity="0.95"/>
+    <rect x="66" y="96" width="22" height="14" rx="3" fill="#39ff14" opacity="0.70"/>
+  </g>
+
+  <!-- The ML badge, set into the rim at the lower right. -->
+  <circle cx="112" cy="116" r="21" fill="#150b34"/>
+  <circle cx="112" cy="116" r="21" fill="none" stroke="#39ff14" stroke-width="1.6" opacity="0.5"/>
+  <text x="112" y="123" text-anchor="middle"
+        font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="20" font-weight="800" letter-spacing="-0.5" fill="#39ff14">ML</text>
+
+  <text x="166" y="95" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="58" font-weight="800" letter-spacing="-2" fill="#efe9ff">Tab<tspan fill="#39ff14">Flux</tspan></text>
+  <rect x="167" y="108" width="412" height="1.4" rx="0.7" fill="url(#rule)" opacity="0.35"/>
+  <text x="169" y="128" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="10.5" letter-spacing="2.3" fill="#9d8fd0">CLASSIFICATION OF MICROBIAL COMMUNITY PROFILES</text>
+</svg>

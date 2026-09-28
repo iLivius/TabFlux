@@ -1,0 +1,6 @@
+# Leftovers of a direct `quarto render analysis/tabflux.qmd` or a preview:
+# Quarto's working folder and intermediates, and the report itself
+# (analysis/tabflux.html), which can carry sample names and results.
+/.quarto/
+**/*.quarto_ipynb
+/*.html

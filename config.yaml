@@ -1,0 +1,258 @@
+# Template configuration: copy it, point `input` at your three files, name the
+# target and the grouping column, and run. Every key is explained in
+# docs/reference/configuration.md; missing keys fall back to the defaults in
+# R/tabflux_config_helpers.R.
+#
+# In the container: set output.dir to "/work/out" below, mount your input/
+# folder and this file over the image's copies, and run (TABPFN_TOKEN is
+# exported once in the host shell, see docs/getting-started/installation.md):
+#   mkdir -p out ~/.cache/tabpfn
+#   docker run --rm --gpus all --user "$(id -u):$(id -g)" -e TABPFN_TOKEN \
+#     -v "$HOME/.cache/tabpfn:/work/.cache/tabpfn" -v "$PWD/out:/work/out" \
+#     -v "$PWD/input:/work/input:ro" -v "$PWD/config.yaml:/work/config.yaml:ro" \
+#     ghcr.io/ilivius/tabflux:1.6.0 Rscript scripts/run_multi_tax_levels.R config.yaml
+
+# Model selection
+methods:
+  # Learners to train and compare, listed explicitly: any of glmnet, kknn, mlp,
+  # ranger, svm, tabpfn, xgboost. mlp cannot share a run with tabpfn.
+  pick:
+    - tabpfn
+    - ranger
+
+# Runtime settings for external dependencies such as TabPFN
+runtime:
+  tabpfn:
+    # The conda installation holding the TabPFN environment.
+    # "" = TABPFN_CONDA_ROOT, else the conda found on PATH.
+    conda_root: ""
+    # TabPFN v2.5:       env_name "tabflux-tabpfn-gpu", model_version "v2.5"
+    #                    (conda/tabflux-tabpfn-gpu.yml; TabFlux needs HF_TOKEN
+    #                    for the v2.x weights).
+    # TabPFN-3.5:        env_name "tabflux-tabpfn35-gpu", model_version "v3.5"
+    #                    (conda/tabflux-tabpfn35-gpu.yml; the weights download
+    #                    after a one-time Prior Labs licence acceptance, with
+    #                    TABPFN_TOKEN when the run is non-interactive, see
+    #                    docs/getting-started/installation.md). The two
+    #                    generations use different fixed settings in
+    #                    tabpfn_search_params() (R/tabflux_training_helpers.R).
+    # A non-empty value below wins over the matching TABPFN_* environment
+    # variable, so a project always runs the environment it names; leave a field
+    # empty to let TABPFN_CONDA_ROOT / TABPFN_ENV_NAME / TABPFN_PYTHON /
+    # TABPFN_MODEL_VERSION decide.
+    env_name: "tabflux-tabpfn35-gpu"
+    python: ""            # interpreter path; set it instead of env_name to pin Python
+    model_version: "v3.5" # "v2.5" or "v3.5", matching the environment above
+    # Hugging Face token, needed for the v2.5 weights only. The environment
+    # (HF_TOKEN in ~/.Renviron or a project-level .Renviron) is read first.
+    # Set it here only if you are comfortable storing the token in YAML.
+    hf_token: ""
+
+# Reproducibility and parallel execution
+execution:
+  seed: 42                # global seed; every outer fold is seeded again from it
+  num_threads: auto       # cores one learner may use internally; auto = all detected cores
+  # Parallel R workers for tuning the R learners (TabPFN always runs in one
+  # process): "auto" = one worker per group when dataset.group is set,
+  # evaluation.inner_folds otherwise, never more than num_threads; a number
+  # pins it.
+  num_jobs: auto
+  # Size limit (GB) for the data copied to each worker; raise it on a
+  # "globals too large" error.
+  future_globals_max_gb: 2
+  # Wall-clock tuning cap in minutes. Used by SVM only; ranger, TabPFN and the
+  # grid-searched learners stop when their own schedule is done.
+  term_min: 20
+  # Final hyperparameter setting: "one_se" = lowest logloss among the settings
+  # within one standard error of the best balanced accuracy (prefers a
+  # well-calibrated model); "max_bacc" = highest balanced accuracy outright.
+  tuning_selection: "one_se"
+  log_threshold: "off"    # mlr3 / bbotk logging: off | warn | info | debug
+
+# Dataset and outcome configuration
+dataset:
+  id: "TabFlux"           # project name: with version, names the run folder and the report subtitle
+  version: "v1"           # YOUR run label, not the TabFlux version: it names the
+                          # output folder and keys the tuned-model cache, so give
+                          # every experiment its own
+  target: "outcome"        # the metadata column with the class labels
+  # The grouping column: which metadata column says where a sample comes from
+  # (a site, study, batch, ...). Samples of one group always stay together on
+  # the same side of a split, so no model is scored on a group it trained on.
+  # How the groups become folds is evaluation.outer further down; under
+  # "lodo" every group is held out once and gets its own metrics
+  # (metrics/lodo_metrics.csv). "" = no grouping, plain random folds.
+  group: "study"
+  # Protected attribute for the fairness metrics (binary targets only): a
+  # metadata column whose subgroups the report compares, e.g. a site under
+  # random folds. Must differ from the grouping column above. "" = off.
+  pta: ""
+  # Taxonomic level(s) to model: asv, phylum ... species, or SGB for MetaPhlAn
+  # profiles. A list runs the wrapper once per level. ASV features rarely
+  # transfer between studies (different primer pairs never share a sequence),
+  # and species-level tables keep only a small share of the reads.
+  tax_level:
+    - phylum
+    - class
+    - order
+    - family
+    - genus
+    - species
+  # Class reported as "positive" (precision, recall, SHAP direction). "" = the
+  # minority class; name it explicitly when the classes are balanced, or the
+  # rule picks alphabetically. Multi-class targets: leave empty.
+  positive_class: ""
+
+# Input file locations relative to the repository root (/work in the container).
+# Three-file layout: raw counts + taxon table + metadata
+# (see docs/getting-started/your-data.md).
+input:
+  counts_path: "input/counts.csv.gz"   # per feature: feature_id, raw counts per sample
+  taxa_path: "input/taxa.csv.gz"       # per feature: feature_id, ranks and/or taxonomy
+  meta_path: "input/meta.csv"          # per sample: sample id first, target, grouping column
+  # Legacy single-file layout (leave empty when using the three-file layout)
+  asv_path: ""
+  # External test set: predicted by every tuned model after the internal
+  # evaluation; metrics are computed per test_group for the samples whose
+  # label matches a training class, predictions-only for everything else.
+  test_counts_path: ""
+  test_taxa_path: ""
+  test_meta_path: ""
+  test_group: ""
+  # Where the training tables come from: "files" = the paths above; "cfmd" =
+  # a public release of the curated Food Metagenomic Data (SegataLab/cFMD),
+  # downloaded once and rewritten in the same three-file layout, so the whole
+  # workflow runs on public data (the demo and the cFMD case study). With
+  # "cfmd" set dataset.target to "category" (or type / subtype / country) and
+  # dataset.group to "dataset". Settings and defaults: R/tabflux_cfmd_helpers.R;
+  # the commented block below shows them.
+  source: "files"
+  # cfmd:
+  #   ref: "v1.3.2"
+  #   datasets: []                 # [] = all 107 datasets; or e.g. [AlmeidaO_2020, LeechJ_2020]
+  #   min_samples_per_dataset: 10
+  #   cache_dir: "input/cfmd_cache"
+
+# Filtering, balancing, and tuning controls
+preprocessing:
+  min_samples_per_class: 5  # classes with fewer samples are dropped before anything is fitted
+  samples_to_keep: 1        # fraction of samples kept per class (quick tests); 1 = all
+  feat_to_keep: 1           # fraction of the most abundant features kept (quick tests); 1 = all
+  # Class balancing: "" = automatic, "none" = off, a SMOTE variant ("smote",
+  # "blsmote", "adasyn"), or "balance". Balancing applies only when the
+  # majority/minority ratio exceeds smote_imbalance_threshold AND every class
+  # has at least min_samples_per_class samples; "" then picks "smote" on a
+  # binary target and "balance" on more classes.
+  # With evaluation.prior_correction: true (the default), "" never balances,
+  # and a named method stops the run whenever balancing would apply; set
+  # prior_correction: false to balance instead.
+  #
+  # "balance" (po("classbalancing")) resamples every class towards the same
+  # size by copying rows. It is the one that works for MULTI-CLASS targets:
+  # the SMOTE family interpolates towards a single minority class, so on more
+  # than two classes it fixes the biggest gap and leaves the rest. Asking for
+  # a SMOTE variant on a multi-class target switches to "balance" with a
+  # message.
+  smote: ""
+  smote_imbalance_threshold: 1.5  # majority/minority size ratio above which balancing applies
+  # Feature filter in front of every learner: "minimal" | "varcor" | "infogain"
+  # | true (= "minimal") | false (none). IGNORED when selecting is true:
+  # wrapper selection replaces filtering and the notebook forces "minimal".
+  filtering: "minimal"
+  # Wrapper feature selection: an information-gain filter, then recursive
+  # elimination with the one-standard-error rule; repeated inside every outer
+  # fold when evaluation.nested is true.
+  selecting: true
+  # Cheaper tuners for big data (row-subsample budgets, one Hyperband
+  # repetition). Forced OFF below 500 samples or 25 features, where the
+  # shortcuts would save nothing.
+  fast_tuning: true
+  # true = every fit runs in a separate R process; a fit that errors is logged
+  # and replaced by a majority-class model, so the run carries on instead of
+  # stopping.
+  learner_fallback: false
+  # Per-sample sequencing-depth normalization applied before the modeling task
+  # is built: none | tss | tss_log | tss_clr. Default tss_log = log10 relative
+  # abundance. See normalize_abundance() in R/tabflux_data_helpers.R.
+  normalization: "tss_log"
+  # Constant added to relative abundances before the log (proportion scale).
+  pseudocount: 1e-6
+  # Binary-task probability calibration applied to the external test set:
+  # "platt" (fitted on out-of-fold benchmark predictions, no test data) | "none"
+  calibration: "platt"
+
+# Output naming options
+output:
+  run_date: ""            # "" = today; the wrapper fixes one date for a whole batch
+  # Where the results are written. "" = the project root, which on a workstation
+  # is this repository. Inside the container set "/work/out", the mounted
+  # volume: the project root is then the image's own copy of the code, so the
+  # run folder lands in the writable layer and --rm deletes it with the
+  # container.
+  dir: ""
+  # Title and author printed at the top of the HTML report. "" = the title is
+  # "Predicting <target> from <tax_level>-level profiles", with dataset.id and
+  # dataset.version in the subtitle, and no author line is shown.
+  report_title: ""
+  report_author: ""
+
+# Feature-importance settings
+importance:
+  method: "shap"          # shap | perm (permutation importance) | none (skip the step)
+  # Restrict the (expensive) importance step to these taxonomic levels when
+  # running the multi-level wrapper; empty list = every level. SHAP on TabPFN
+  # predicts through a fresh process per call and can cost an hour or more
+  # per level, so name the levels you will actually report.
+  levels: [family, genus]
+  shap_sample_size: 100     # draws per SHAP value (all but TabPFN); more = steadier, slower
+  shap_max_rows: 300        # training rows explained, any learner; the step costs rows x features x classes
+  tabpfn_shap_sample_size: 25  # the same for TabPFN, which re-runs the whole model for every draw
+  tabpfn_shap_max_rows: 100    # training rows explained for TabPFN
+
+# How the reported performance is estimated (see docs/workflow/evaluation.md).
+# Two independent decisions: is there an internal test set (test_split), and
+# how is the estimate on the training data made (outer + nested + inner).
+evaluation:
+  # Internal test set carved out of the input data BEFORE feature selection,
+  # tuning and the outer folds: 0 = none (the outer folds are the estimate —
+  # the right choice below ~1000 samples, or when an external test set plays
+  # the confirmatory role), 0.2 = reserve 20 % (whole groups when dataset.group
+  # is set, stratified by class otherwise). Scored by the final models in the
+  # Prediction section, like an external test set.
+  test_split: 0
+  # How the estimate on the training data is made: cv | repeated_cv |
+  # subsampling | loo | lodo. With dataset.group set, every strategy keeps whole
+  # groups together; "lodo" = one fold per group (leave-one-dataset-out).
+  outer: "lodo"
+  outer_folds: 10          # cv / repeated_cv; subsampling tests 1/outer_folds of the samples per split
+  outer_repeats: 3         # repeated_cv / subsampling
+  # true  = feature selection and tuning are repeated inside every outer fold,
+  #         on that fold's training part only (honest estimate; costs about
+  #         "number of folds" times the selection + tuning time)
+  # false = once on all training data, folds only refit and scored (fast, but
+  #         optimistic: the held-out samples already shaped selection and tuning)
+  nested: true
+  # Resampling for the tuning inside a fold: auto | cv | repeated_cv | loo.
+  # auto = under a grouping column, leave-one-group-out up to
+  # max(inner_folds, 10) groups and k-fold over the groups above that;
+  # otherwise k-fold (fewer folds when the smallest class has inner_folds
+  # samples or fewer), or repeated k-fold below 500 samples for every learner
+  # except mlp, tabpfn and xgboost. With a grouping column, every choice keeps
+  # whole groups together.
+  inner: "auto"
+  inner_folds: 5           # folds of the inner k-fold, and the group cap above
+  inner_repeats: 3         # repetitions of the inner repeated k-fold
+  # Predicted category = largest probability divided by the class's training
+  # frequency, the same rule for every learner. It is the decision that
+  # maximises balanced accuracy; probabilities, and so log-loss, are unchanged.
+  # false = largest probability, which favours the majority class.
+  prior_correction: true
+
+# Plotting and display controls
+visualization:
+  # The ordination plots (PCA, t-SNE) draw a random subset of downsample_size
+  # samples above downsample_threshold samples, and leave out taxa present in
+  # fewer than prevalence_threshold (a fraction) of the samples.
+  downsample_threshold: 10000
+  downsample_size: 1000
+  prevalence_threshold: 0.05

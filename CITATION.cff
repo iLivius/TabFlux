@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use TabFlux, please cite it as below. A Zenodo DOI is minted with the first public release and replaces the repository URL."
+title: "TabFlux: machine-learning classification of microbial community profiles"
+type: software
+version: 1.6.0
+date-released: 2026-09-28
+license: Apache-2.0
+repository-code: "https://github.com/iLivius/TabFlux"
+authors:
+  - family-names: Antonielli
+    given-names: Livio
+    affiliation: "AIT Austrian Institute of Technology"
+    email: livio.antonielli@ait.ac.at
+  - family-names: Pucher
+    given-names: Lukas
+    affiliation: "AIT Austrian Institute of Technology"
+keywords:
+  - microbiome
+  - machine learning
+  - mlr3
+  - TabPFN
+  - nested resampling
+  - leave-one-dataset-out
+abstract: >-
+  TabFlux turns a microbiome table into an honestly evaluated classifier. It
+  aggregates taxa to any rank, normalises sequencing depth, selects features
+  and tunes hyperparameters inside every fold of a grouped, nested evaluation
+  (whole studies, sites or batches held out together; leave-one-dataset-out is
+  one option), then reports per-group performance, probability calibration and
+  SHAP explanations. It runs on the public curated Food Metagenomic Data
+  repository out of the box.

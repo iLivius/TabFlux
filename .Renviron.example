@@ -1,0 +1,38 @@
+# Template for the TabPFN variables of a workstation (conda) install.
+# The container sets what it needs itself; this file is not used there.
+#
+# Where they go: copy the lines you need into ~/.Renviron (your home folder),
+# not into a .Renviron in this repository. Under `quarto render` a project-level
+# .Renviron is read only after Python has been bound, so of these variables
+# only HF_TOKEN is reliably picked up from there.
+#
+# - `.Renviron.example` is only a template. R does not read it.
+# - Keep each comment on its own line: R does not strip a comment written after
+#   a value, so `TABPFN_NO_BROWSER=1  # note` sets the whole text as the value.
+# - Do not leave blank assignments like `TABPFN_TOKEN=` in a real `.Renviron`:
+#   an empty value overrides a working one set elsewhere.
+# - For TABPFN_CONDA_ROOT, TABPFN_ENV_NAME, TABPFN_PYTHON and TABPFN_MODEL_VERSION
+#   a non-empty value in the config (runtime.tabpfn) wins; these variables are
+#   read only for a field set to "" (a field left out of the config takes the
+#   built-in default: env_name tabflux-tabpfn35-gpu, model_version v3.5).
+#   TABPFN_TOKEN and TABPFN_NO_BROWSER have no config field, and HF_TOKEN wins
+#   over runtime.tabpfn.hf_token.
+#
+# TabPFN 3.5, the shipped default.
+# TABPFN_TOKEN is the API key of your Prior Labs account. Accept the licence
+# once on that account (ux.priorlabs.ai); the package uses the key to confirm
+# the acceptance before it downloads the 3.5 weights.
+# TABPFN_NO_BROWSER=1 stops the package from trying to open a browser for that
+# acceptance, which a render cannot do.
+# TABPFN_CONDA_ROOT=/path/to/miniconda3
+# TABPFN_ENV_NAME=tabflux-tabpfn35-gpu
+# TABPFN_MODEL_VERSION=v3.5
+# TABPFN_TOKEN=...
+# TABPFN_NO_BROWSER=1
+#
+# To pin the Python interpreter directly instead of naming the environment:
+# TABPFN_PYTHON=/path/to/miniconda3/envs/tabflux-tabpfn35-gpu/bin/python
+#
+# TabPFN v2.5 only (environment tabflux-tabpfn-gpu, TABPFN_MODEL_VERSION=v2.5).
+# HF_TOKEN is a Hugging Face access token; TabFlux stops without it for v2.x.
+# HF_TOKEN=hf_xxx

@@ -1,0 +1,152 @@
+# Continuous integration: build the image from scratch on a clean cloud runner
+# and run the workflow on public data. This is the portability guarantee — if
+# it passes here, nothing in the image depends on the machine it was built on.
+# GitHub runners have no GPU and no TabPFN licence token, so the demo runs on
+# CPU, on a small subset, with the random forest only.
+name: build-and-smoke
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]          # a version tag also publishes the image, see the publish job
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # GitHub's standard runner has about 14 GB free on /, and the CUDA-enabled
+      # PyTorch wheels this image installs (torch plus a dozen nvidia-* CUDA
+      # libraries) do not fit alongside the preinstalled toolchains. Deleting
+      # the toolchains the build does not use frees ~25 GB and costs about 30
+      # seconds, which keeps CI building the REAL image rather than a
+      # slimmed-down CPU variant that would not prove portability.
+      - name: Free disk space on the runner
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost /usr/local/share/powershell \
+                      /usr/share/swift "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune -af || true
+          df -h /
+      - name: Build the image (no cache, fresh base)
+        run: docker build --pull --no-cache -t tabflux:ci .
+      - name: R unit tests
+        run: |
+          for t in tests/test_*.R; do
+            echo "== $t =="
+            docker run --rm tabflux:ci Rscript "$t"
+          done
+
+  cfmd-smoke:
+    runs-on: ubuntu-24.04
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      # GitHub's standard runner has about 14 GB free on /, and the CUDA-enabled
+      # PyTorch wheels this image installs (torch plus a dozen nvidia-* CUDA
+      # libraries) do not fit alongside the preinstalled toolchains. Deleting
+      # the toolchains the build does not use frees ~25 GB and costs about 30
+      # seconds, which keeps CI building the REAL image rather than a
+      # slimmed-down CPU variant that would not prove portability.
+      - name: Free disk space on the runner
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost /usr/local/share/powershell \
+                      /usr/share/swift "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune -af || true
+          df -h /
+      - run: docker build -t tabflux:ci .
+      # Three datasets, 346 samples, three categories each present in two of
+      # them, so every fold can learn every class it is scored on. SHAP is cut
+      # to a token size: this checks the code path, not the ranking.
+      #
+      # Random forest only: a clean runner has no TabPFN licence token, and
+      # without it every TabPFN fit fails and the run stops by design. So CI
+      # does NOT exercise the TabPFN path (reticulate, the Python side, the
+      # weights); a green run here says nothing about TabPFN.
+      #
+      # GITHUB_TOKEN is passed because listing the cFMD release is a call to
+      # the GitHub API, which allows only 60 anonymous calls per hour per IP
+      # address; a shared cloud runner can hit that limit. The token is issued
+      # per run by GitHub, so there is nothing to store.
+      - name: Render the cFMD demo on three datasets, CPU, random forest only
+        run: |
+          mkdir -p out
+          docker run --rm -v "$PWD/out:/work/out" tabflux:ci \
+            Rscript -e 'cfg <- yaml::read_yaml("config_cfmd_demo.yaml");
+                        cfg$methods$pick <- list("ranger");
+                        cfg$input$cfmd$datasets <- list("AlvarezOrdonezA_xxxx","DeFilippisF_xxxx","SequinoG_2024_b");
+                        cfg$importance$shap_max_rows <- 20L; cfg$importance$shap_sample_size <- 20L;
+                        cfg$importance$tabpfn_shap_max_rows <- 10L; cfg$importance$tabpfn_shap_sample_size <- 10L;
+                        cfg$dataset$version <- "ci";
+                        yaml::write_yaml(cfg, "/work/out/config_ci.yaml")' \
+            && docker run --rm -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+                 -v "$PWD/out:/work/out" tabflux:ci \
+                 Rscript scripts/run_multi_tax_levels.R /work/out/config_ci.yaml
+      - name: Check the metrics were written
+        run: test -s out/*_multi_tax_results/performance_metrics_all_tax_levels.csv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cfmd-demo-report
+          path: out/**/*.html
+
+  # Publish the image so a user does not have to build it. Only on a version
+  # tag: ordinary pushes just build and throw away. GitHub's own registry
+  # (ghcr.io) is free for public repositories and needs no account beyond the
+  # one running this workflow - GITHUB_TOKEN is issued per run, so there is no
+  # secret to store.
+  #
+  # After this runs, anyone can skip the clone and the 20-minute build:
+  #   mkdir -p out ~/.cache/tabpfn
+  #   docker run --rm --gpus all --user "$(id -u):$(id -g)" -e TABPFN_TOKEN \
+  #     -v "$HOME/.cache/tabpfn:/work/.cache/tabpfn" -v "$PWD/out:/work/out" \
+  #     ghcr.io/ilivius/tabflux:1.6.0
+  publish-image:
+    # Only after the tests and the smoke run have passed on this same commit.
+    needs: [unit-tests, cfmd-smoke]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write     # the only extra permission the publish needs
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space on the runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost /usr/local/share/powershell \
+                      /usr/share/swift "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune -af || true
+          df -h /
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Two tags for the same image: the version the tag names (v1.6.0 ->
+      # 1.6.0), which never moves, and "latest", which follows the newest
+      # release. Cite the version tag in a paper, never latest.
+      # Docker image names must be all lowercase, and the account name keeps
+      # its capitals (iLivius), so the owner is lowercased here: ${VAR,,} is
+      # bash for "the value of VAR in lowercase".
+      - name: Tag names
+        id: names
+        run: |
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ steps.names.outputs.owner }}/tabflux:${{ steps.names.outputs.version }}
+            ghcr.io/${{ steps.names.outputs.owner }}/tabflux:latest
+      - name: Say where it went
+        run: |
+          echo "Published ghcr.io/${{ steps.names.outputs.owner }}/tabflux:${{ steps.names.outputs.version }}"
+          echo "The package is private until you set it public once, in the repository's Packages settings."

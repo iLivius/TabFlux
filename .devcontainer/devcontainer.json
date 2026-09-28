@@ -1,0 +1,81 @@
+// Development container for TabFlux: open this repository in VS Code (or
+// Positron), run "Dev Containers: Reopen in Container", and the editor works
+// inside the TabFlux image - the same R, packages, Quarto, TabPFN and CUDA the
+// pipeline uses. Step-by-step use: docs/getting-started/interactive.md.
+{
+  "name": "TabFlux",
+
+  // The TabFlux image plus an ordinary user (see Dockerfile next to this file).
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": { "TABFLUX_IMAGE": "ghcr.io/ilivius/tabflux:1.6.0" }
+  },
+
+  // Mount the checkout at /work, where the image keeps its own copy of the code.
+  // Edits then take effect at once, the notebook finds the project root from
+  // the R session's working directory (/work), and the paths the configs use
+  // resolve into the checkout: /work/out (runs, cFMD download) and /work/input
+  // are both git-ignored.
+  "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind",
+  "workspaceFolder": "/work",
+
+  // Use the NVIDIA GPU when the host has one (NVIDIA Container Toolkit
+  // installed); without it the container still starts and TabPFN runs on CPU.
+  "hostRequirements": { "gpu": "optional" },
+
+  // TabPFN keeps its model weights and the Prior Labs licence token in
+  // ~/.cache/tabpfn. Mounting the host's folder there means one download, and
+  // one licence acceptance, shared by the container, docker run and conda runs.
+  // initializeCommand runs on the host, as you, before the container starts. It
+  // creates that folder (a bind mount needs an existing source) and out/ in the
+  // checkout: if Docker created out/ for a `docker run -v "$PWD/out:/work/out"`,
+  // it would belong to root and the container user could not write to it.
+  "initializeCommand": ["mkdir", "-p", "${localEnv:HOME}/.cache/tabpfn", "${localWorkspaceFolder}/out"],
+  "mounts": [
+    "source=${localEnv:HOME}/.cache/tabpfn,target=/home/tabflux/.cache/tabpfn,type=bind"
+  ],
+
+  "containerEnv": {
+    // The image sets HOME=/tmp for anonymous `docker run --user` runs; the
+    // editor user has a real home, which holds the TabPFN cache mount.
+    "HOME": "/home/tabflux",
+    // Weights in the mounted cache, not in /work/.cache (the image default),
+    // which would now be inside the checkout.
+    "TABPFN_MODEL_CACHE_DIR": "/home/tabflux/.cache/tabpfn",
+    // Passed through from the host when set there. TABPFN_TOKEN is needed
+    // only for the first 3.5 weights download, if no licence token is cached
+    // yet; GITHUB_TOKEN raises the GitHub API limit of the cFMD listing.
+    "TABPFN_TOKEN": "${localEnv:TABPFN_TOKEN}",
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
+  },
+
+  // Everything in the container runs as that user; VS Code maps its UID/GID to
+  // yours so files written into the checkout are owned by you.
+  "remoteUser": "tabflux",
+  "containerUser": "tabflux",
+  "updateRemoteUserUID": true,
+
+  "customizations": {
+    "vscode": {
+      // Installed inside the container: Quarto (cell toolbar, Run Cell, render)
+      // and the R extension (the "R Interactive" terminal that runs R cells,
+      // the plot and data viewers).
+      "extensions": ["quarto.quarto", "REditorSupport.r"],
+      "settings": {
+        "r.rterm.linux": "/usr/local/bin/R",
+        "r.rpath.linux": "/usr/local/bin/R",
+        // The image has no languageserver package: autocompletion and hover
+        // help are off, and the extension does not ask to install it.
+        "r.lsp.enabled": false,
+        // Plots appear as images in a VS Code tab (the R session watcher);
+        // the httpgd viewer is not installed.
+        "r.plot.useHttpgd": false,
+        "r.sessionWatcher": true,
+        // Run folders and the cFMD download under out/ change constantly
+        // during a run; the editor need not watch or search them.
+        "files.watcherExclude": { "**/out/**": true },
+        "search.exclude": { "**/out/**": true }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+name: tabflux-r
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - r-base=4.5
+  - r-essentials
+  - r-irkernel
+  - r-pacman
+  - r-remotes
+  - r-reticulate
+  - r-yaml
+  - r-igraph
+  - r-kknn
+  - r-smotefamily
+  - quarto
+  - pandoc
+  - git
+  - make
+  - cmake
+  - pkg-config
+  - compilers
+  - curl
+  - libcurl
+  - openssl
+  - libxml2
+  - cairo
+  - fontconfig
+  - freetype
+  - harfbuzz
+  - fribidi
+  - icu

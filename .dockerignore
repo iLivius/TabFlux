@@ -1,0 +1,21 @@
+# Keep the build context clean: nothing from this machine may enter the image.
+# Patterns match from the build-context root, so "**/" is needed to reach
+# render leftovers inside subfolders such as analysis/, which is copied whole.
+.git
+.github/
+input/
+out/
+site/
+docs/
+*_saved_learners/
+*_multi_tax_results/
+.Renviron
+config_*smoke*.yaml
+# Render leftovers: HTML reports, their _files/ folders, Quarto's working
+# folders and intermediates, and R's default plot file.
+**/*.html
+**/*_files/
+**/.quarto/
+**/*.quarto_ipynb
+**/*.rmarkdown
+**/Rplots.pdf

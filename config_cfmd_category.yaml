@@ -1,0 +1,211 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# cFMD food-category classification — seven-class, grouped cross-validation.
+#
+# What this run does: takes every public dataset of the curated Food Metagenomic
+# Data (SegataLab/cFMD v1.3.2) that has at least 10 samples, and asks whether
+# the microbial composition of a food sample predicts WHICH KIND of food it is
+# (dairy, meat, beverage, ...). Profiles are MetaPhlAn 4 species-level genome
+# bins (SGBs), used at their native resolution without aggregation.
+#
+# Why grouped cross-validation and not leave-one-dataset-out: 96 of the 109 cFMD
+# datasets contain a single food category, so a held-out dataset usually makes a
+# test fold with one category only: balanced accuracy then reduces to that
+# category's recall and AUC is undefined. Instead the dataset is the
+# GROUPING variable (dataset.group below) while the folds are ordinary 5-fold CV:
+# each fold still holds out whole studies — no sample of a study is ever split
+# between training and test — but a fold pools several studies and therefore
+# covers several categories. See docs/workflow/grouping.md.
+#
+# The image ships this file, so the container runs it as it stands
+# (TABPFN_TOKEN is exported once in the host shell, see
+# docs/getting-started/installation.md):
+#   mkdir -p out ~/.cache/tabpfn
+#   docker run --rm --gpus all --user "$(id -u):$(id -g)" -e TABPFN_TOKEN \
+#     -v "$HOME/.cache/tabpfn:/work/.cache/tabpfn" -v "$PWD/out:/work/out" \
+#     ghcr.io/ilivius/tabflux:1.6.0 Rscript scripts/run_multi_tax_levels.R config_cfmd_category.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Learners to train and compare. Others (glmnet, kknn, svm) are described in
+# docs/workflow/learners.md; add one here to run it. mlp cannot share a run
+# with tabpfn.
+methods:
+  pick:
+    - tabpfn
+    - ranger
+    - xgboost
+
+# Runtime settings for external dependencies such as TabPFN
+runtime:
+  tabpfn:
+    conda_root: ""
+    # TabPFN v2.5:       env_name "tabflux-tabpfn-gpu", model_version "v2.5";
+    #                    the weights are gated on Hugging Face and need HF_TOKEN.
+    # TabPFN-3.5 (this run):  env_name "tabflux-tabpfn35-gpu", model_version "v3.5";
+    #                    the weights download after a one-time Prior Labs
+    #                    licence acceptance, with TABPFN_TOKEN when the run is
+    #                    non-interactive.
+    # The two generations use different fixed settings, see
+    # tabpfn_search_params() in R/tabflux_training_helpers.R.
+    env_name: "tabflux-tabpfn35-gpu"
+    python: ""            # empty on purpose: the container sets TABPFN_PYTHON, a workstation uses env_name
+    model_version: "v3.5"
+    # Hugging Face token, needed for the v2.5 weights only. Prefer HF_TOKEN in
+    # ~/.Renviron or a project-level .Renviron, which is read first.
+    hf_token: ""
+
+# Reproducibility and parallel execution
+execution:
+  seed: 42
+  num_threads: auto
+  # Parallel R workers for tuning the R learners (TabPFN always runs in one
+  # process): "auto" = one worker per group when dataset.group is set,
+  # evaluation.inner_folds otherwise, never more than num_threads; a number
+  # pins it.
+  num_jobs: auto
+  future_globals_max_gb: 4
+  # Wall-clock tuning cap in minutes. Used by SVM only; ranger, xgboost and
+  # TabPFN stop when their own schedule is done.
+  term_min: 20
+  # Final hyperparameter setting: "one_se" = lowest logloss among the settings
+  # within one standard error of the best balanced accuracy (prefers a
+  # well-calibrated model); "max_bacc" = highest balanced accuracy outright.
+  tuning_selection: "one_se"
+  log_threshold: "off"
+
+# Dataset and outcome configuration
+dataset:
+  id: "TabFlux"
+  version: "category"
+  # The food category recorded by cFMD for each sample: dairy, meat, beverage,
+  # and so on. Seven categories survive the min_samples_per_class filter below.
+  target: "category"
+  # The GROUPING column, not the fold design. Every sample of one cFMD dataset
+  # stays on the same side of every split, so a model is never tested on a study
+  # it was also trained on. How the folds are built is decided by
+  # evaluation.outer further down — here 5-fold CV over these groups.
+  group: "dataset"
+  # Fairness metrics are binary-only in mlr3fairness, so no protected attribute
+  # is set for this multi-class run. Must differ from the grouping column above,
+  # whatever the fold design: a group held out of training has no samples left
+  # in that fold to compute fairness gaps from.
+  pta: ""
+  # cFMD ships MetaPhlAn 4 SGB profiles, which are already the finest
+  # level available — no ASV table, no aggregation. Other levels (genus, family,
+  # ...) are derived from the SGB lineage and can be run with the wrapper.
+  tax_level: "SGB"
+  # Multi-class: there is no single positive class to name.
+  positive_class: ""
+
+# Input file locations relative to the repository root (/work in the container).
+input:
+  counts_path: ""
+  taxa_path: ""
+  meta_path: ""
+  asv_path: ""
+  # No external test set for this run: cFMD is the only public source, and a
+  # held-out slice of it would be the same population. The grouped folds are
+  # the estimate.
+  test_counts_path: ""
+  test_taxa_path: ""
+  test_meta_path: ""
+  test_group: ""
+  # "cfmd" downloads a public release of the curated Food Metagenomic Data once
+  # and rewrites it in the usual three-file layout (counts / taxa / metadata),
+  # so the whole workflow runs unchanged on public data.
+  # Settings and defaults: R/tabflux_cfmd_helpers.R.
+  source: "cfmd"
+  cfmd:
+    ref: "v1.3.2"
+    # [] = every dataset in the release. Datasets smaller than
+    # min_samples_per_dataset are dropped, because a group of three samples
+    # cannot carry a fold.
+    datasets: []
+    min_samples_per_dataset: 10
+    cache_dir: "/work/out/cfmd_cache"
+
+# Filtering, balancing, and tuning controls
+preprocessing:
+  # Categories with fewer than 50 samples across the whole compilation are
+  # dropped. cFMD's rare categories (a handful of samples each) would otherwise
+  # add classes that no fold can learn and that drag balanced accuracy down for
+  # a reason that has nothing to do with the biology.
+  min_samples_per_class: 50
+  samples_to_keep: 1
+  feat_to_keep: 1
+  # Class balancing inside the learner graph: "" = automatic, "none" = off,
+  # "balance" = po("classbalancing"), or a SMOTE variant (binary targets only;
+  # a multi-class target switches to "balance" with a message). With
+  # evaluation.prior_correction: true, as below, "" never balances, and a named
+  # method stops the run whenever balancing would apply.
+  #
+  # OFF for this run on purpose. Dairy is two thirds of the samples, and
+  # resampling the other six categories up to its size would multiply the
+  # smallest one thirty-fold from 75 real samples. Imbalance is handled by
+  # scoring on balanced accuracy instead, which weights every class equally.
+  smote: "none"
+  smote_imbalance_threshold: 1.5
+  # Feature filter in front of every learner. IGNORED when selecting is true.
+  filtering: "minimal"
+  selecting: true
+  # Cheaper tuners for big data (row-subsample budgets, one Hyperband
+  # repetition). This run is well above the 500-sample threshold, so they are
+  # active; the whole nested run takes 1 h 37 min on the GPU workstation
+  # described in docs/cfmd/running.md.
+  fast_tuning: true
+  learner_fallback: false
+  # Per-sample sequencing-depth normalization. cFMD profiles are already
+  # relative abundances summing to 100 per sample, so tss only rescales them to
+  # proportions and the log does the real work; keeping tss_log makes the step
+  # explicit and identical to what a table of raw counts gets.
+  normalization: "tss_log"
+  pseudocount: 1e-6
+  # Platt calibration is binary-only; ignored on a multi-class target.
+  calibration: "none"
+
+# Output naming options
+output:
+  run_date: ""
+  # Inside the container /work/out is the mounted volume, so results survive the
+  # run; the code in the image stays read-only. On a workstation leave it empty.
+  dir: "/work/out"
+
+# Feature-importance settings
+importance:
+  method: "shap"
+  levels: []              # only one level is run here (SGB), so no restriction needed
+  shap_sample_size: 100
+  shap_max_rows: 300        # training rows explained, any learner; the step costs rows x features x classes
+  tabpfn_shap_sample_size: 25
+  tabpfn_shap_max_rows: 100
+
+# How the reported performance is estimated (see docs/workflow/evaluation.md).
+evaluation:
+  # No internal test set: the grouped outer folds are the estimate, and holding
+  # out a further slice would only shrink the training data.
+  test_split: 0
+  # Ordinary k-fold, but over the groups named in dataset.group — whole studies
+  # move together. Not "lodo": one dataset per fold is unscorable here (see the
+  # header of this file).
+  outer: "cv"
+  outer_folds: 5
+  outer_repeats: 3         # unused with outer: cv
+  # Feature selection and tuning are repeated inside every outer fold, on that
+  # fold's training part only. This is the expensive but honest setting.
+  nested: true
+  # Resampling for the tuning inside a fold. "auto" under a grouping column:
+  # leave-one-group-out up to max(inner_folds, 10) groups, k-fold over the
+  # groups above that. Here: 57 datasets, so 5-fold over the datasets.
+  inner: "auto"
+  inner_folds: 5
+  inner_repeats: 3
+  # Predicted category = largest probability divided by the class's training
+  # frequency, the same rule for every learner. It is the decision that
+  # maximises balanced accuracy; probabilities, and so log-loss, are unchanged.
+  # false = largest probability, which favours the majority class.
+  prior_correction: true
+
+# Plotting and display controls
+visualization:
+  downsample_threshold: 10000
+  downsample_size: 1000
+  prevalence_threshold: 0.05

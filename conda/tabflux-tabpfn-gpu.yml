@@ -1,0 +1,13 @@
+name: tabflux-tabpfn-gpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=2.9.1=*cuda129*
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn=1.7.*
+  - pip:
+      - tabpfn==6.0.6
