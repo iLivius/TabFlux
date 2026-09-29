@@ -109,7 +109,7 @@ The [evaluation design](../workflow/evaluation.md) page explains the choices.
 | key | meaning |
 |---|---|
 | `run_date` | `""` = today; the wrapper fixes one date for a whole batch |
-| `dir` | where run folders and reports go; `""` = the project root. In the container set `/work/out` (the mounted `out/`), as the cFMD configs do; left empty, the results stay inside the container and `--rm` deletes them. Created when missing; relative paths resolve against the project root |
+| `dir` | where run folders and reports go; `""` = the project root. In the container set `/work/out` (the mounted `out/`), as the cFMD configs do; left empty, a run with `--user` stops at once (the image's `/work` is not writable for you), and one without `--user` writes inside the container, where `--rm` deletes the results. Created when missing; relative paths resolve against the project root |
 | `report_title`, `report_author` | the HTML report's title and author line; `""` = "Predicting `<target>` from `<level>`-level profiles", with `<id> · run <version>` as subtitle, and no author line |
 
 ## `visualization`

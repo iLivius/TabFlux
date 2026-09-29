@@ -52,7 +52,7 @@ docker run --rm --gpus all --user "$(id -u):$(id -g)" -e TABPFN_TOKEN \
   ghcr.io/ilivius/tabflux:1.6.0 Rscript scripts/run_multi_tax_levels.R config.yaml
 ```
 
-Relative paths in the config resolve against `/work`, the project folder inside the image, so the template's `input/counts.csv.gz` is read from the mounted `input/`. With `output.dir` left empty the results are written inside the container, and `--rm` discards them.
+Relative paths in the config resolve against `/work`, the project folder inside the image, so the template's `input/counts.csv.gz` is read from the mounted `input/`. Leave `output.dir` empty and the run targets the image's own `/work`: with `--user` it stops at once, because that folder is not writable for you; without `--user` the results land inside the container, and `--rm` discards them.
 
 Drop `--gpus all` to run on CPU; TabPFN is several times slower there. Building the image locally and the workstation install with conda are described on the [installation](https://iLivius.github.io/TabFlux/getting-started/installation/) page.
 

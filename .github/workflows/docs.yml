@@ -15,12 +15,13 @@
 # --strict — see below) does not take the live site down: gh-pages simply keeps
 # whatever it last successfully published until the next successful run.
 #
-# One-time setup this file does NOT do for you (both are in repo Settings on
-# GitHub, not something a workflow file can turn on for itself):
-#   - Settings -> Actions -> General -> Workflow permissions -> "Read and write
-#     permissions". Without this, the gh-deploy push step is rejected.
+# One-time setup this file does NOT do for you (in repo Settings on GitHub, not
+# something a workflow file can turn on for itself):
 #   - Settings -> Pages -> Source -> Deploy from a branch -> gh-pages. This can only
 #     be selected after the branch exists, i.e. after this workflow has run once.
+# The push to gh-pages needs write access, which this workflow requests itself
+# (permissions: contents: write, below), so the repository's default workflow
+# permissions can stay read-only.
 
 name: docs
 

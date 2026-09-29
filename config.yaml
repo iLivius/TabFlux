@@ -186,9 +186,10 @@ output:
   run_date: ""            # "" = today; the wrapper fixes one date for a whole batch
   # Where the results are written. "" = the project root, which on a workstation
   # is this repository. Inside the container set "/work/out", the mounted
-  # volume: the project root is then the image's own copy of the code, so the
-  # run folder lands in the writable layer and --rm deletes it with the
-  # container.
+  # volume. Left empty there, the project root is the image's own copy of the
+  # code: run with --user (as documented) the run stops at once, because that
+  # folder is not writable for you; run as root, the results land inside the
+  # container and --rm deletes them.
   dir: ""
   # Title and author printed at the top of the HTML report. "" = the title is
   # "Predicting <target> from <tax_level>-level profiles", with dataset.id and

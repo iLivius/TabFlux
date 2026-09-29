@@ -50,7 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # Python side: TabPFN 3.5 with a CUDA-capable PyTorch, in a virtual environment
-# that reticulate is pointed at. Pinned versions, no Conda.
+# that reticulate is pointed at. No Conda. torch and tabpfn are pinned; the
+# packages they pull in are not (pip takes the newest that fit).
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 # TABPFN_PYTHON is what TabFlux's own runtime resolution reads; RETICULATE_PYTHON
@@ -70,9 +71,11 @@ ENV CUDA=cpu INSTALL_R_TORCH=1
 
 COPY conda/install_r_packages.R /tmp/install_r_packages.R
 # The repository is set here and the install script honours it (see the note
-# in that file): packages arrive as binaries, nothing is compiled, and a
-# rebuild later resolves to the same versions. Verified below: the build stops
-# if the repository is not the pinned binary one.
+# in that file): CRAN packages arrive as binaries from the dated snapshot, so a
+# rebuild later resolves them to the same versions. The exception is
+# mlr3extralearners (the TabPFN wrapper) and a few of its dependencies, which
+# come from mlr-org's r-universe as they are on build day, compiled from source.
+# Verified below: the build stops if the repository is not the pinned binary one.
 RUN echo "options(repos = c(CRAN = '${CRAN}'), Ncpus = parallel::detectCores())" >> /usr/local/lib/R/etc/Rprofile.site \
  && Rscript -e "stopifnot(grepl('packagemanager', getOption('repos')[['CRAN']]))" \
             -e "source('/tmp/install_r_packages.R')" \
@@ -114,6 +117,24 @@ RUN mkdir -p /work/.cache/tabpfn /work/out /work/input
 # HOME points at /tmp because an arbitrary uid has no home directory here.
 RUN chmod -R a+rwX /work/analysis /work/out /work/input /work/.cache
 ENV HOME=/tmp
+
+# Name the image after TabFlux. Without these lines it inherits the labels of
+# the base image (rocker/r-ver: its title, authors, licence and source), and
+# GitHub's package page shows rocker's description as TabFlux's own. They sit
+# at the end so that changing them never invalidates the cached build steps.
+# TABFLUX_REVISION is the git commit the image was built from: CI passes it,
+# a local build says "local-build".
+ARG TABFLUX_REVISION=local-build
+LABEL org.opencontainers.image.title="TabFlux" \
+      org.opencontainers.image.description="Machine-learning classification of microbial community profiles, with grouped and nested evaluation: classic learners and TabPFN, in R/mlr3 and Quarto." \
+      org.opencontainers.image.version="1.6.0" \
+      org.opencontainers.image.revision="${TABFLUX_REVISION}" \
+      org.opencontainers.image.source="https://github.com/iLivius/TabFlux" \
+      org.opencontainers.image.documentation="https://ilivius.github.io/TabFlux/" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.authors="Livio Antonielli, Lukas Pucher" \
+      org.opencontainers.image.vendor="AIT Austrian Institute of Technology" \
+      org.opencontainers.image.base.name="docker.io/rocker/r-ver:4.5.3"
 
 # Default: the public cFMD demo. To run your own data, mount your input files
 # and config over the image's copies (relative config paths resolve against

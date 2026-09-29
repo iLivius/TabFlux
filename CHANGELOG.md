@@ -2,7 +2,7 @@
 
 All notable changes to TabFlux. Released versions are tagged in git from 1.6.0 on.
 
-## 1.6.0 — 2026-09-28
+## 1.6.0 — 2026-09-29
 
 - **One decision rule for every learner** (`evaluation.prior_correction`, on by
   default). The predicted category is the largest probability divided by that
@@ -84,6 +84,8 @@ All notable changes to TabFlux. Released versions are tagged in git from 1.6.0 o
 - **Development container** (`.devcontainer/`): VS Code (or Positron) opens the
   repository inside the TabFlux image and runs the notebook chunk by chunk with the
   image's R, packages, TabPFN and GPU; files it writes belong to the host user.
+- The image carries TabFlux's own labels (name, description, version, source, licence,
+  authors) instead of those of the rocker base image.
 - **Known limitation:** metagenomic taxonomic profiles are supported at demo stage (the
   cFMD case study). An external test set at SGB level is not supported yet and stops the
   run at that step; fuller support comes with the next release.

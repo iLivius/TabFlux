@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # GitHub's standard runner has about 14 GB free on /, and the CUDA-enabled
-      # PyTorch wheels this image installs (torch plus a dozen nvidia-* CUDA
-      # libraries) do not fit alongside the preinstalled toolchains. Deleting
-      # the toolchains the build does not use frees ~25 GB and costs about 30
-      # seconds, which keeps CI building the REAL image rather than a
-      # slimmed-down CPU variant that would not prove portability.
+      # The image is about 12 GB unpacked, most of it the CUDA-enabled PyTorch
+      # wheels (torch plus a dozen nvidia-* CUDA libraries), and building it
+      # needs room on top. Deleting preinstalled toolchains the build does not
+      # use takes one to three minutes and guarantees that room, which keeps CI
+      # building the REAL image rather than a slimmed-down CPU variant that
+      # would not prove portability.
       - name: Free disk space on the runner
         run: |
           df -h /
@@ -45,12 +45,12 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
-      # GitHub's standard runner has about 14 GB free on /, and the CUDA-enabled
-      # PyTorch wheels this image installs (torch plus a dozen nvidia-* CUDA
-      # libraries) do not fit alongside the preinstalled toolchains. Deleting
-      # the toolchains the build does not use frees ~25 GB and costs about 30
-      # seconds, which keeps CI building the REAL image rather than a
-      # slimmed-down CPU variant that would not prove portability.
+      # The image is about 12 GB unpacked, most of it the CUDA-enabled PyTorch
+      # wheels (torch plus a dozen nvidia-* CUDA libraries), and building it
+      # needs room on top. Deleting preinstalled toolchains the build does not
+      # use takes one to three minutes and guarantees that room, which keeps CI
+      # building the REAL image rather than a slimmed-down CPU variant that
+      # would not prove portability.
       - name: Free disk space on the runner
         run: |
           df -h /
@@ -143,10 +143,14 @@ jobs:
         with:
           context: .
           push: true
+          # Record in the image which commit it was built from (the
+          # org.opencontainers.image.revision label at the end of the Dockerfile).
+          build-args: |
+            TABFLUX_REVISION=${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.names.outputs.owner }}/tabflux:${{ steps.names.outputs.version }}
             ghcr.io/${{ steps.names.outputs.owner }}/tabflux:latest
       - name: Say where it went
         run: |
           echo "Published ghcr.io/${{ steps.names.outputs.owner }}/tabflux:${{ steps.names.outputs.version }}"
-          echo "The package is private until you set it public once, in the repository's Packages settings."
+          echo "A package published from a public repository is public too; check it once under the repository's Packages."

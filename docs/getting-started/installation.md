@@ -36,8 +36,11 @@ Docker itself needs an administrator: to install it, and to give you access (mem
 of the `docker` group, which amounts to root rights). Without Docker access, use
 [conda](#conda).
 
-The first `docker pull` fetches about 7 GB and is then cached. Quote the version tag,
-never `latest`, in anything you publish: `latest` moves with every release.
+The first `docker pull` fetches about 7 GB, which unpacks to about 12 GB of disk, and is
+then cached. The image is built for x86-64 Linux (`linux/amd64`) only: on an ARM
+machine, Apple Silicon included, Docker can run it only under slow emulation and without
+a GPU. Quote the version tag, never `latest`, in anything you publish: `latest` moves
+with every release.
 
 To build it yourself instead — to change the code, or to check that the recipe still
 produces the same thing — tag the build with the published name, so every command on
@@ -50,10 +53,13 @@ docker build -t ghcr.io/ilivius/tabflux:1.6.0 .
 
 !!! note "What the image pins"
 
-    R 4.5.3, and every R package as a precompiled binary from a date-pinned
-    [Posit](https://packagemanager.posit.co) repository. Nothing is compiled at build
-    time, so no package links against a library that happens to sit on the build
-    machine.
+    R 4.5.3; every CRAN package as a precompiled binary from a date-pinned
+    [Posit](https://packagemanager.posit.co) repository; PyTorch 2.9.1 and `tabpfn`
+    9.0.0. Not pinned: `mlr3extralearners` (the TabPFN wrapper) and a few of its
+    dependencies, installed from mlr-org's r-universe as they are on build day, and the
+    Python packages that PyTorch and `tabpfn` pull in. A local build can therefore
+    differ slightly from the published image: for numbers you report, use the published
+    image and quote its version tag.
 
 ### GPU
 

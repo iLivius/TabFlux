@@ -112,8 +112,9 @@ Put the three files in `input/`, edit `config.yaml` (the template in the reposit
 and run it in the container or on a workstation.
 
 **Container.** Relative paths in the config resolve against `/work`, so mount `input/`
-and the config there, and set `output.dir: "/work/out"` in `config.yaml`; with it left
-empty the results stay inside the container and `--rm` deletes them:
+and the config there, and set `output.dir: "/work/out"` in `config.yaml`. Left empty, the
+run stops at once with `--user` (the image's `/work` is not writable for you), and
+without `--user` it writes inside the container, where `--rm` deletes the results:
 
 ```bash
 mkdir -p out ~/.cache/tabpfn
