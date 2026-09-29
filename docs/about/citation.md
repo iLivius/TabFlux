@@ -2,14 +2,13 @@
 
 If TabFlux is useful in your work, please cite the software.
 
-> Antonielli, L., & Pucher, L. (2026). *TabFlux: machine-learning classification of microbial community profiles.*
-> GitHub. <https://github.com/iLivius/TabFlux>
+> Antonielli, L., & Pucher, L. (2026). *TabFlux: machine-learning classification of
+> microbial community profiles* (v1.6.0). Zenodo. <https://doi.org/10.5281/zenodo.23041258>
 
+Each release gets its own version DOI: cite the one you ran. The concept DOI,
+[10.5281/zenodo.23041257](https://doi.org/10.5281/zenodo.23041257), always resolves to the newest release.
 The repository carries a `CITATION.cff` file, so GitHub's "Cite this repository" button
-produces a correct entry in APA or BibTeX. A Zenodo DOI is minted with the first public
-release and is the preferred thing to cite. The concept DOI always resolves to the
-newest release, and each tagged release gets its own version DOI, which is the one to
-cite when the exact code matters.
+produces the entry in APA or BibTeX.
 
 ## References
 

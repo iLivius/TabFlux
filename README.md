@@ -9,7 +9,7 @@
   <a href="Dockerfile"><img src="https://img.shields.io/badge/Docker-GPU%20ready-2496ED?logo=docker&logoColor=white" alt="Docker"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache 2.0 license"></a>
   <a href="https://iLivius.github.io/TabFlux/"><img src="https://img.shields.io/badge/docs-iLivius.github.io%2FTabFlux-5E35B1" alt="Documentation"></a>
-  <img src="https://img.shields.io/badge/DOI-pending%20release-lightgrey.svg" alt="DOI pending">
+  <a href="https://doi.org/10.5281/zenodo.23041257"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23041257.svg" alt="DOI 10.5281/zenodo.23041257"></a>
 </p>
 
 **TabFlux** turns a microbial community profile — amplicon ASV/OTU counts or shotgun taxonomic profiles — into a machine-learning classifier, and into an honest estimate of what that classifier is worth on samples it has never seen. One Quarto notebook and one plain-text configuration file drive the whole run: aggregation to any taxonomic level, depth normalisation, feature selection, tuning, grouped and nested evaluation, calibration, an external test set and SHAP explanations. Built on [mlr3](https://mlr3.mlr-org.com), TabFlux runs the classic learners of microbiome machine learning — random forest, XGBoost, penalised regression, k-nearest neighbours, support vector machines — and, beyond them, [TabPFN](https://priorlabs.ai), a foundation model for tabular data that learns from your data in context instead of being trained on it. Every learner is scored on the same unseen samples.
@@ -64,9 +64,9 @@ Drop `--gpus all` to run on CPU; TabPFN is several times slower there. Building 
 
 ## Citation
 
-TabFlux has no DOI yet; a Zenodo DOI will be minted with the first public release. Until then:
+> Antonielli, L., & Pucher, L. (2026). *TabFlux: machine-learning classification of microbial community profiles* (v1.6.0). Zenodo. <https://doi.org/10.5281/zenodo.23041258>
 
-> Antonielli, L., & Pucher, L. (2026). *TabFlux: machine-learning classification of microbial community profiles.* GitHub. <https://github.com/iLivius/TabFlux>
+Cite the version you ran: each release has its own DOI, and [10.5281/zenodo.23041257](https://doi.org/10.5281/zenodo.23041257) always resolves to the newest.
 
 Machine-readable metadata is in [`CITATION.cff`](CITATION.cff). TabFlux stands on other people's methods and software — mlr3, ranger, TabPFN, SHAP, cFMD and more — so **cite those too**: the full list is on the [citation page](https://iLivius.github.io/TabFlux/about/citation/).
 
