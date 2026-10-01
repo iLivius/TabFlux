@@ -38,28 +38,14 @@ metagenomes.
 
 ## What a run does
 
-```mermaid
-%%{init: {"themeVariables": {"fontSize": "18px"}, "flowchart": {"wrappingWidth": 300}}}%%
-flowchart TB
-  A["counts + taxonomy + metadata"] --> B["aggregate to a rank,<br>depth normalisation"]
-  B --> EST
-  B --> FIN
-  subgraph EST["Every outer fold"]
-    direction TB
-    E1["feature selection"] --> E2["hyperparameter tuning"] --> E3["fit, score the<br>held-out studies"]
-  end
-  subgraph FIN["Once, on all training data"]
-    direction TB
-    M1["feature selection"] --> M2["hyperparameter tuning"] --> M3["final model"]
-  end
-  EST --> R["per-fold metrics and spread<br>calibration (binary targets)"]
-  FIN --> P["test and external<br>predictions, SHAP"]
-```
+[![Metro map of a TabFlux run. Your tables or a cFMD release go through a shared preparation, then split into two paths: the estimate, repeated in every outer fold, and the final model, fitted once on all training data. The final model predicts the test sets and is explained with SHAP; both paths end in the report, and the whole run is repeated for each taxonomic level.](assets/tabflux_metro.svg#only-light)](assets/tabflux_metro.svg)
+[![Metro map of a TabFlux run. Your tables or a cFMD release go through a shared preparation, then split into two paths: the estimate, repeated in every outer fold, and the final model, fitted once on all training data. The final model predicts the test sets and is explained with SHAP; both paths end in the report, and the whole run is repeated for each taxonomic level.](assets/tabflux_metro_dark.svg#only-dark)](assets/tabflux_metro_dark.svg)
 
-The left column is repeated for every outer fold, whether that fold holds out one dataset
-or a block of them; its scores are the estimate. The right column runs once and gives the
+The green line is repeated for every outer fold, whether that fold holds out one dataset
+or a block of them; its scores are the estimate. The violet line runs once and gives the
 model that predicts new samples and is explained. That is what the honest estimate costs;
-the [evaluation design](workflow/evaluation.md) page explains the trade.
+the [evaluation design](workflow/evaluation.md) page explains the trade. Select the map to
+open it at full size.
 
 ## Two learners
 

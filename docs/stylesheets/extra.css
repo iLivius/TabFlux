@@ -7,14 +7,6 @@
   max-width: 1360px;
 }
 
-/* ── Diagrams ────────────────────────────────────────────────────────────────
- * Nothing here styles the Mermaid diagram. Material draws it inside a closed
- * shadow DOM, which page CSS cannot reach, and it colours the diagram from the
- * palette so both light and dark mode stay readable. Label size and wrapping
- * are set in the diagram itself (the init line at the top of the Mermaid block
- * in docs/index.md).
- */
-
 /* Config keys and file names in the first column of a table are identifiers:
    breaking one across two lines makes it hard to read and to search for. Keep
    inline code in the first column on one line and let the description column

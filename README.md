@@ -14,6 +14,15 @@
 
 **TabFlux** turns a microbial community profile — amplicon ASV/OTU counts or shotgun taxonomic profiles — into a machine-learning classifier, and into an honest estimate of what that classifier is worth on samples it has never seen. One Quarto notebook and one plain-text configuration file drive the whole run: aggregation to any taxonomic level, depth normalisation, feature selection, tuning, grouped and nested evaluation, calibration, an external test set and SHAP explanations. Built on [mlr3](https://mlr3.mlr-org.com), TabFlux runs the classic learners of microbiome machine learning — random forest, XGBoost, penalised regression, k-nearest neighbours, support vector machines — and, beyond them, [TabPFN](https://priorlabs.ai), a foundation model for tabular data that learns from your data in context instead of being trained on it. Every learner is scored on the same unseen samples.
 
+<!-- Metro map of a run (drawn with nf-metro). GitHub shows the dark version to
+     readers in dark mode and the light one otherwise. -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/tabflux_metro_dark.svg">
+    <img src="docs/assets/tabflux_metro.svg" alt="Metro map of a TabFlux run. Your tables or a cFMD release go through a shared preparation, then split into two paths: the estimate, repeated in every outer fold, and the final model, fitted once on all training data. The final model predicts the test sets and is explained with SHAP; both paths end in the report, and the whole run is repeated for each taxonomic level.">
+  </picture>
+</p>
+
 ## 📖 Documentation
 
 **Full documentation: [iLivius.github.io/TabFlux](https://iLivius.github.io/TabFlux/)**
