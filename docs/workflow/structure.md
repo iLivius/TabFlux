@@ -110,9 +110,9 @@ Six keys differ (table below). Everything else is the same: `tax_level: SGB`,
 | Methods and Libraries | reads the config, decides which learners run, binds the TabPFN Python runtime |
 | Set Parameters | turns every config value into a validated R variable; names the run folder and the report |
 | Import Data | reads the three files, aggregates to the requested level, saves the name map |
-| Preprocess Data | drops small classes; optional subsampling for test runs |
-| Inspect Data | depth per sample and per group, class × group table, ordination |
-| Normalize Abundances | per-sample relative abundance and log; saves the settings |
+| Preprocess Data | drops small classes; optional subsampling for test runs; prints the class sizes and, with a grouping column, a group × class table |
+| Inspect Data | ordination of the samples (PCA and t-SNE): do the classes separate at all? |
+| Normalize Abundances | per-sample relative abundance and log; prints the spread of sequencing depth, overall and per group; saves the settings |
 | Define Task | builds the mlr3 task, reserves the internal test set, builds the outer folds |
 | Prepare Modeling Inputs | the preprocessing graph every learner sits behind |
 | Feature Selection | selection on the full training data, for the final models |
